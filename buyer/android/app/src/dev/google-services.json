@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "109530322471",
+    "project_id": "paysft-2122f",
+    "storage_bucket": "paysft-2122f.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:109530322471:android:5eb8c1330fac6e1e892002",
+        "android_client_info": {
+          "package_name": "com.example.buyer.dev"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDeud3d2s8wWK9tDW57gsFpzLc19UaMs5o"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

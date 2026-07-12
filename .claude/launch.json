@@ -1,0 +1,15 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "buyer-web",
+      "runtimeExecutable": "powershell",
+      "runtimeArgs": [
+        "-NoProfile",
+        "-Command",
+        "Set-Location 'C:\\Projects\\Client\\paysft\\buyer'; flutter run -t lib/main_dev.dart -d web-server --web-port 5599 --web-hostname 127.0.0.1"
+      ],
+      "port": 5599
+    }
+  ]
+}
