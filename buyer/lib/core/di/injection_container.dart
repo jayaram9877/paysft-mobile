@@ -7,6 +7,8 @@ import '../../data/datasources/remote/auth_remote_data_source.dart';
 import '../../data/datasources/remote/onboarding_remote_data_source.dart';
 import '../../data/datasources/remote/profile_remote_data_source.dart';
 import '../../data/datasources/remote/lead_remote_data_source.dart';
+import '../../data/datasources/remote/chat_remote_data_source.dart';
+import '../../presentation/providers/chat_list_provider.dart';
 import '../../data/datasources/remote/saved_units_remote_data_source.dart';
 import '../../data/datasources/remote/sales_remote_data_source.dart';
 import '../../data/datasources/remote/visits_remote_data_source.dart';
@@ -102,6 +104,9 @@ Future<void> init([AppConfig? config]) async {
   );
 
   sl.registerFactory(() => PayTokenProvider());
+  sl.registerFactory(
+    () => ChatListProvider(chatDataSource: sl(), leadDataSource: sl()),
+  );
   sl.registerFactory(() => AgentProfileProvider());
   // App-wide singletons so unit cards + unit details + favorites share state.
   sl.registerLazySingleton(() => LeadProvider(dataSource: sl()));
@@ -164,6 +169,9 @@ Future<void> init([AppConfig? config]) async {
   );
   sl.registerLazySingleton<LeadRemoteDataSource>(
     () => LeadRemoteDataSourceImpl(dio: sl()),
+  );
+  sl.registerLazySingleton<ChatRemoteDataSource>(
+    () => ChatRemoteDataSourceImpl(dio: sl()),
   );
   sl.registerLazySingleton<SavedUnitsRemoteDataSource>(
     () => SavedUnitsRemoteDataSourceImpl(dio: sl()),

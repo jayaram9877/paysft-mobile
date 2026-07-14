@@ -15,6 +15,9 @@ const Color _alignedGreen = Color(0xFF12B76A);
 const Color _alignedGreenBg = Color(0xFFE7F8F0);
 const Color _pausedAmber = Color(0xFFB54708);
 const Color _pausedAmberBg = Color(0xFFFFF4E5);
+// Pending builder-approval accent (blue).
+const Color _pendingBlue = Color(0xFF1570EF);
+const Color _pendingBlueBg = Color(0xFFEFF4FF);
 const Color _dangerRed = Color(0xFFD92D20);
 
 class ListPage extends StatefulWidget {
@@ -316,6 +319,7 @@ class _ProjectListView extends StatelessWidget {
                 item: item,
                 isAligned: provider.isAligned(item.id),
                 isPaused: provider.isPaused(item.id),
+                isPending: provider.isPending(item.id),
                 isAligning: provider.isAligning(item.id),
                 isUpdating: provider.isUpdating(item.id),
                 onAlign: () => _alignProject(context, item),
@@ -337,13 +341,23 @@ class _ProjectListView extends StatelessWidget {
 }
 
 Future<void> _alignProject(BuildContext context, BrokerProjectModel item) async {
+  final provider = context.read<ProjectsProvider>();
   final messenger = ScaffoldMessenger.of(context);
-  final error = await context.read<ProjectsProvider>().align(item.id);
+  final error = await provider.align(item.id);
   if (!context.mounted) return;
+  // Projects that require builder approval come back as `pending` — tell the
+  // broker their request was sent rather than claiming it's aligned.
+  final pending = provider.isPending(item.id);
   messenger.showSnackBar(
     SnackBar(
-      content: Text(error ?? '${item.name} aligned'),
-      backgroundColor: error == null ? _alignedGreen : null,
+      content: Text(
+        error ??
+            (pending
+                ? 'Request sent to the builder — awaiting approval.'
+                : '${item.name} aligned'),
+      ),
+      backgroundColor:
+          error == null ? (pending ? _pendingBlue : _alignedGreen) : null,
     ),
   );
 }
@@ -472,6 +486,7 @@ class _PropertyCard extends StatelessWidget {
   final BrokerProjectModel item;
   final bool isAligned;
   final bool isPaused;
+  final bool isPending;
   final bool isAligning;
   final bool isUpdating;
   final VoidCallback onAlign;
@@ -483,6 +498,7 @@ class _PropertyCard extends StatelessWidget {
     required this.item,
     required this.isAligned,
     required this.isPaused,
+    required this.isPending,
     required this.isAligning,
     required this.isUpdating,
     required this.onAlign,
@@ -492,7 +508,20 @@ class _PropertyCard extends StatelessWidget {
     required this.onTap,
   });
 
-  bool get _attached => isAligned || isPaused;
+  bool get _attached => isAligned || isPaused || isPending;
+
+  // Status descriptor shared by the header badge and the bottom status chip.
+  IconData get _statusIcon => isPending
+      ? Icons.hourglass_top
+      : isPaused
+          ? Icons.pause_circle_outline
+          : Icons.check_circle;
+  String get _statusLabel =>
+      isPending ? 'Pending' : (isPaused ? 'Paused' : 'Aligned');
+  Color get _statusColor =>
+      isPending ? _pendingBlue : (isPaused ? _pausedAmber : _alignedGreen);
+  Color get _statusBg =>
+      isPending ? _pendingBlueBg : (isPaused ? _pausedAmberBg : _alignedGreenBg);
 
   @override
   Widget build(BuildContext context) {
@@ -504,11 +533,7 @@ class _PropertyCard extends StatelessWidget {
           color: AppColors.backgroundWhite,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isAligned
-                ? _alignedGreen
-                : isPaused
-                    ? _pausedAmber
-                    : AppColors.borderGrayMedium,
+            color: _attached ? _statusColor : AppColors.borderGrayMedium,
           ),
           boxShadow: [
             BoxShadow(
@@ -585,20 +610,14 @@ class _PropertyCard extends StatelessWidget {
                   ),
                   child: Row(
                     children: [
-                      Icon(
-                        isPaused
-                            ? Icons.pause_circle_outline
-                            : Icons.check_circle,
-                        size: 14,
-                        color: isPaused ? _pausedAmber : _alignedGreen,
-                      ),
+                      Icon(_statusIcon, size: 14, color: _statusColor),
                       const SizedBox(width: 4),
                       Text(
-                        isPaused ? 'Paused' : 'Aligned',
+                        _statusLabel,
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
-                          color: isPaused ? _pausedAmber : _alignedGreen,
+                          color: _statusColor,
                         ),
                       ),
                     ],
@@ -826,6 +845,28 @@ class _PropertyCard extends StatelessWidget {
         children: [_alignButton()],
       );
     }
+    // Pending builder approval: show the status + a way to withdraw the request.
+    if (isPending) {
+      return Row(
+        children: [
+          _statusChip(),
+          const Spacer(),
+          if (isUpdating)
+            const SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          else
+            _smallButton(
+              label: 'Cancel',
+              icon: Icons.close,
+              color: _dangerRed,
+              onTap: onUnalign,
+            ),
+        ],
+      );
+    }
     // Aligned / paused: status chip + manage actions on the card itself.
     return Row(
       children: [
@@ -864,24 +905,22 @@ class _PropertyCard extends StatelessWidget {
   }
 
   Widget _statusChip() {
-    final paused = isPaused;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
       decoration: BoxDecoration(
-        color: paused ? _pausedAmberBg : _alignedGreenBg,
+        color: _statusBg,
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
         children: [
-          Icon(paused ? Icons.pause_circle_outline : Icons.check_circle,
-              size: 14, color: paused ? _pausedAmber : _alignedGreen),
+          Icon(_statusIcon, size: 14, color: _statusColor),
           const SizedBox(width: 6),
           Text(
-            paused ? 'Paused' : 'Aligned',
+            isPending ? 'Pending approval' : _statusLabel,
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: paused ? _pausedAmber : _alignedGreen,
+              color: _statusColor,
             ),
           ),
         ],

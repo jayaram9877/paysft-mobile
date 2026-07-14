@@ -96,6 +96,12 @@ dependencies:
   # URL Launcher
   url_launcher: ^6.2.5
 
+  # Native share sheet (share property links to WhatsApp, etc.)
+  share_plus: ^10.1.4
+
+  # Deep linking (Android App Links / iOS Universal Links)
+  app_links: ^6.3.2
+
   # In-app WebView
   webview_flutter: ^4.10.0
 

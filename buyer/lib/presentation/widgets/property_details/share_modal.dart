@@ -3,9 +3,15 @@ import 'package:buyer/core/constants/app_string_constants.dart';
 import 'package:buyer/core/theme/theme_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../domain/entities/property_details_model.dart';
 import '../../widgets/common/app_svg_icon.dart';
+
+/// Canonical public URL for a property, on the buyer website. Recipients open
+/// this in a browser (or the app, once App Links / Universal Links are set up).
+String _propertyShareUrl(String projectId) =>
+    'https://buyer.demo.paysft.com/projects/$projectId';
 
 /// Share modal widget for sharing property details
 /// Follows the existing architecture pattern with theme-aware design
@@ -13,6 +19,19 @@ class ShareModal extends StatelessWidget {
   final PropertyDetailsModel property;
 
   const ShareModal({super.key, required this.property});
+
+  /// Opens the OS native share sheet (WhatsApp, Messages, Gmail, …).
+  Future<void> _shareViaApps(BuildContext context) async {
+    final url = _propertyShareUrl(property.id);
+    final box = context.findRenderObject() as RenderBox?;
+    await Share.share(
+      '${property.title} — ${property.location}\n$url',
+      subject: property.title,
+      sharePositionOrigin:
+          box != null ? box.localToGlobal(Offset.zero) & box.size : null,
+    );
+    if (context.mounted) Navigator.of(context).pop();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -45,7 +64,28 @@ class ShareModal extends StatelessWidget {
             child: Text('Share with Family & Friends', style: themeManager.titleStyle),
           ),
 
-          const SizedBox(height: 23),
+          const SizedBox(height: 16),
+
+          // Primary action: native OS share sheet (covers WhatsApp, SMS, email…).
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () => _shareViaApps(context),
+                icon: const Icon(Icons.ios_share, size: 18),
+                label: const Text('Share', style: TextStyle(fontWeight: FontWeight.w600)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.bluePrimary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 20),
 
           // 🔹 Share options (16px on all sides)
           Padding(
@@ -134,15 +174,7 @@ class _ShareOptionItem extends StatelessWidget {
     }
   }
 
-  String _getShareUrl() {
-    // Construct the share URL with property details
-    // In a real app, this would be your app's deep link or web URL
-    final propertyName = Uri.encodeComponent(property.title);
-    final propertyAddress = Uri.encodeComponent(property.location);
-    // Replace with your actual app link or web URL
-    // For now using a placeholder - replace with your actual domain
-    return 'https://paysft.com/property/${property.id}?name=$propertyName&address=$propertyAddress';
-  }
+  String _getShareUrl() => _propertyShareUrl(property.id);
 
   String _getShareText() {
     return '${property.title} - ${property.location}';

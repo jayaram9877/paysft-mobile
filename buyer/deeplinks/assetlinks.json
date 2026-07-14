@@ -1,0 +1,22 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.example.buyer",
+      "sha256_cert_fingerprints": [
+        "REPLACE_WITH_RELEASE_SIGNING_SHA256"
+      ]
+    }
+  },
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.example.buyer.dev",
+      "sha256_cert_fingerprints": [
+        "40:6C:09:FF:65:8F:2E:A4:1E:AE:AE:B7:29:BD:A7:BB:46:5C:68:75:CD:E3:42:2B:C4:60:B8:3F:B9:BC:DC:CF"
+      ]
+    }
+  }
+]

@@ -24,6 +24,7 @@ abstract class HomeRepository {
     String? projectType,
     String? projectSubtype,
     String? cityId,
+    num? priceMax,
     int limit,
   });
 }

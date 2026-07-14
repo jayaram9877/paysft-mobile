@@ -4,7 +4,7 @@ class BrokerAssignmentModel {
   final String id;
   final String brokerId;
   final String projectId;
-  final String status; // aligned | paused | revoked
+  final String status; // aligned | paused | revoked | pending | rejected
   final DateTime? alignedAt;
   final DateTime? revokedAt;
 

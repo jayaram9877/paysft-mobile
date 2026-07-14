@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../core/constants/app_string_constants.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/theme/theme_manager.dart';
 import '../providers/profile_provider.dart';
+import '../providers/offers_provider.dart';
 import '../widgets/common/app_svg_icon.dart';
 import 'web_view_page.dart';
 import 'notification_settings_page.dart';
@@ -26,17 +26,14 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
-  // Summary metrics have no backend aggregate endpoint yet (placeholders).
-  final int _propertiesCount = 3;
-  final String _totalPaid = '₹75L';
-  final String _pending = '₹12L';
-  final int _utilitiesDue = 3;
-
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) context.read<ProfileProvider>().ensureLoaded();
+      if (!mounted) return;
+      context.read<ProfileProvider>().ensureLoaded();
+      // Sales power the summary card (Properties / Paid / Pending).
+      context.read<OffersProvider>().ensureLoaded();
     });
   }
 
@@ -44,6 +41,7 @@ class _ProfilePageState extends State<ProfilePage> {
   Widget build(BuildContext context) {
     final themeManager = ThemeManager();
     final profile = context.watch<ProfileProvider>().profile;
+    final offers = context.watch<OffersProvider>();
 
     final userName =
         (profile?.fullName.isNotEmpty ?? false) ? profile!.fullName : 'Guest User';
@@ -74,7 +72,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   right: 20,
                   top: null,
                   bottom: -65, // Overlap by 40px
-                  child: _buildSummaryCard(themeManager),
+                  child: _buildSummaryCard(themeManager, offers),
                 ),
               ],
             ),
@@ -200,7 +198,7 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget _buildSummaryCard(ThemeManager themeManager) {
+  Widget _buildSummaryCard(ThemeManager themeManager, OffersProvider offers) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -211,11 +209,11 @@ class _ProfilePageState extends State<ProfilePage> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _buildSummaryItem(themeManager, value: _propertiesCount.toString(), label: AppStrings.properties),
+          _buildSummaryItem(themeManager, value: offers.propertiesCount.toString(), label: AppStrings.properties),
           Container(width: 1, height: 40, color: AppColors.borderDivider),
-          _buildSummaryItem(themeManager, value: _totalPaid, label: AppStrings.totalPaid),
+          _buildSummaryItem(themeManager, value: offers.paidTotalLabel, label: AppStrings.totalPaid),
           Container(width: 1, height: 40, color: AppColors.borderDivider),
-          _buildSummaryItem(themeManager, value: _pending, label: AppStrings.pending),
+          _buildSummaryItem(themeManager, value: offers.pendingTotalLabel, label: AppStrings.pending),
         ],
       ),
     );
@@ -279,8 +277,6 @@ class _ProfilePageState extends State<ProfilePage> {
                   iconPath: 'assets/images/profile_utilities.svg',
                   title: AppStrings.utilities,
                   subtitle: AppStrings.utilitiesSubtitle,
-                  badge: _utilitiesDue > 0 ? '$_utilitiesDue ${AppStrings.due}' : null,
-                  isDue: true,
                   onTap: () {
                     // TODO: Navigate to utilities page
                     final themeManager = ThemeManager();

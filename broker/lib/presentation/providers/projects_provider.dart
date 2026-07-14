@@ -57,9 +57,14 @@ class ProjectsProvider with ChangeNotifier {
   String? assignmentStatusFor(String projectId) =>
       assignmentFor(projectId)?.status;
 
-  /// Project ids the broker is attached to (aligned OR paused).
+  /// Project ids the broker is attached to — aligned, paused, or a pending
+  /// request awaiting builder approval. Pending is included so those projects
+  /// surface in the "Aligned" tab (as pending) rather than staying in Available.
   Set<String> get _attachedIds => _assignments
-      .where((a) => a.status == 'aligned' || a.status == 'paused')
+      .where((a) =>
+          a.status == 'aligned' ||
+          a.status == 'paused' ||
+          a.status == 'pending')
       .map((a) => a.projectId)
       .toSet();
 
@@ -67,6 +72,10 @@ class ProjectsProvider with ChangeNotifier {
   bool isAligned(String projectId) =>
       assignmentStatusFor(projectId) == 'aligned';
   bool isPaused(String projectId) => assignmentStatusFor(projectId) == 'paused';
+
+  /// The broker's alignment request is awaiting builder approval.
+  bool isPending(String projectId) =>
+      assignmentStatusFor(projectId) == 'pending';
   bool isAligning(String projectId) => _aligningIds.contains(projectId);
   bool isUpdating(String projectId) => _updatingIds.contains(projectId);
 
@@ -162,7 +171,7 @@ class ProjectsProvider with ChangeNotifier {
   /// Aligns the broker to [projectId] via POST /brokers/me/assignments.
   /// Returns null on success, or an error message to surface to the user.
   Future<String?> align(String projectId) async {
-    if (isAligned(projectId) || isAligning(projectId)) return null;
+    if (isAttached(projectId) || isAligning(projectId)) return null;
     _aligningIds.add(projectId);
     notifyListeners();
     try {

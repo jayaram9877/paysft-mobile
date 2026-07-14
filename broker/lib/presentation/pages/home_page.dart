@@ -7,6 +7,7 @@ import '../providers/home_dashboard_provider.dart';
 import '../providers/profile_provider.dart';
 import '../providers/main_tab_controller.dart';
 import 'my_documents_page.dart';
+import 'copilot_page.dart';
 import '../../data/models/broker_model.dart';
 import '../../data/models/user_model.dart';
 import '../widgets/home/search_bar_widget.dart';
@@ -106,6 +107,15 @@ class _HomePageState extends State<HomePage> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF4F6FB),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const CopilotPage()),
+        ),
+        backgroundColor: AppColors.bluePrimary,
+        icon: const Icon(Icons.auto_awesome, color: Colors.white),
+        label: const Text('Copilot',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+      ),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),

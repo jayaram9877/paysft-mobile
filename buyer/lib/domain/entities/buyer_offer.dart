@@ -6,12 +6,16 @@ class BuyerOfferSummary {
   final String unitLabel;
   final String totalCost;
 
+  /// Raw numeric total cost (INR) for aggregation; 0 when unknown.
+  final double totalCostValue;
+
   const BuyerOfferSummary({
     required this.saleId,
     required this.status,
     required this.projectName,
     required this.unitLabel,
     required this.totalCost,
+    this.totalCostValue = 0,
   });
 
   bool get canRespond => status == 'sent' || status == 'viewed';
@@ -31,6 +35,9 @@ class BuyerOfferDetail {
   final String? unitTitle;
   final String builderName;
   final String totalCost;
+
+  /// Raw numeric total cost (INR) for aggregation; 0 when unknown.
+  final double totalCostValue;
   final Map<String, dynamic> costBreakdown;
   final List<Map<String, dynamic>> milestones;
   final Map<String, dynamic>? escrow;
@@ -53,6 +60,7 @@ class BuyerOfferDetail {
     required this.unitTitle,
     required this.builderName,
     required this.totalCost,
+    this.totalCostValue = 0,
     required this.costBreakdown,
     required this.milestones,
     this.escrow,

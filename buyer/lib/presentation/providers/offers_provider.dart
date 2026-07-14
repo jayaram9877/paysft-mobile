@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/errors/exceptions.dart';
+import '../../core/utils/currency_format.dart';
 import '../../data/datasources/remote/sales_remote_data_source.dart';
 import '../../domain/entities/buyer_offer.dart';
 
@@ -20,6 +21,26 @@ class OffersProvider extends ChangeNotifier {
   final Set<String> _busy = {};
 
   bool isBusy(String saleId) => _busy.contains(saleId);
+
+  // --- Profile summary (derived from real sale statuses) --------------------
+  // The backend has no payment ledger, so "paid"/"pending" are proxied from the
+  // sale lifecycle: a `booked` sale is treated as paid, an `accepted` sale as
+  // pending. "Properties" counts the buyer's committed sales (accepted+booked).
+
+  Iterable<BuyerOfferSummary> get _committed =>
+      _offers.where((o) => o.status == 'accepted' || o.status == 'booked');
+
+  int get propertiesCount => _committed.length;
+
+  double _sumWhere(String status) => _offers
+      .where((o) => o.status == status)
+      .fold<double>(0, (sum, o) => sum + o.totalCostValue);
+
+  /// Σ total_cost of `booked` sales, formatted compactly (e.g. ₹5.5Cr).
+  String get paidTotalLabel => CurrencyFormat.inrCompact(_sumWhere('booked'));
+
+  /// Σ total_cost of `accepted` (not yet booked) sales.
+  String get pendingTotalLabel => CurrencyFormat.inrCompact(_sumWhere('accepted'));
 
   Future<void> ensureLoaded() async {
     if (_loaded || _loading) return;
@@ -94,6 +115,7 @@ class OffersProvider extends ChangeNotifier {
       projectName: detail.projectName,
       unitLabel: detail.unitLabel,
       totalCost: detail.totalCost,
+      totalCostValue: detail.totalCostValue,
     );
     final idx = _offers.indexWhere((o) => o.saleId == detail.saleId);
     if (idx >= 0) {

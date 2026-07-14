@@ -1,27 +1,68 @@
 import 'package:flutter/foundation.dart';
 import '../../domain/entities/message.dart';
+import '../../data/datasources/remote/chat_remote_data_source.dart';
+import '../../data/datasources/remote/lead_remote_data_source.dart';
 
 enum ChatSortOption { unreadFirst, readFirst, orderByName }
 
+/// The buyer's chat conversations. Each conversation is a lead the buyer is
+/// interested in; messaging is with the broker aligned to that lead. Titles use
+/// the property (the list has no counterpart name — that appears in the thread).
 class ChatListProvider with ChangeNotifier {
+  final ChatRemoteDataSource chatDataSource;
+  final LeadRemoteDataSource leadDataSource;
+
+  ChatListProvider({
+    required this.chatDataSource,
+    required this.leadDataSource,
+  });
+
   List<ChatContact> _allChats = [];
   List<ChatContact> _filteredChats = [];
   String _searchQuery = '';
   ChatSortOption _sortOption = ChatSortOption.unreadFirst;
-
-  ChatListProvider({List<ChatContact>? initialChats}) {
-    _allChats = initialChats ?? [];
-    _filteredChats = List.from(_allChats);
-    _applySorting();
-  }
+  bool _loading = false;
+  bool _loaded = false;
 
   List<ChatContact> get chats => _filteredChats;
   List<ChatContact> get allChats => List.unmodifiable(_allChats);
   String get searchQuery => _searchQuery;
   ChatSortOption get sortOption => _sortOption;
+  bool get isLoading => _loading;
 
-  void setChats(List<ChatContact> chats) {
-    _allChats = chats;
+  Future<void> ensureLoaded() async {
+    if (_loaded || _loading) return;
+    await load();
+  }
+
+  Future<void> load() async {
+    _loading = true;
+    notifyListeners();
+    try {
+      final rows = await leadDataSource.getActiveLeadRows();
+      final unread = await chatDataSource.unreadPerLead();
+      _allChats = rows
+          .map((r) {
+            final id = '${r['id'] ?? ''}';
+            final title =
+                '${r['project_name'] ?? r['unit_title'] ?? 'Conversation'}';
+            final img = '${r['cover_image_url'] ?? ''}';
+            final unit = '${r['unit_title'] ?? r['unit_number'] ?? ''}';
+            return ChatContact(
+              id: id,
+              name: title,
+              profileImageUrl: img.isEmpty ? null : img,
+              unreadCount: unread[id] ?? 0,
+              lastMessage: unit.isEmpty ? null : unit,
+            );
+          })
+          .where((c) => c.id.isNotEmpty)
+          .toList();
+      _loaded = true;
+    } catch (_) {
+      // Keep any previous list on failure.
+    }
+    _loading = false;
     _applyFilters();
     notifyListeners();
   }
@@ -44,7 +85,8 @@ class ChatListProvider with ChangeNotifier {
     } else {
       _filteredChats = _allChats.where((chat) {
         final nameMatch = chat.name.toLowerCase().contains(_searchQuery);
-        final messageMatch = chat.lastMessage?.toLowerCase().contains(_searchQuery) ?? false;
+        final messageMatch =
+            chat.lastMessage?.toLowerCase().contains(_searchQuery) ?? false;
         return nameMatch || messageMatch;
       }).toList();
     }
@@ -57,24 +99,14 @@ class ChatListProvider with ChangeNotifier {
         _filteredChats.sort((a, b) {
           if (a.unreadCount > 0 && b.unreadCount == 0) return -1;
           if (a.unreadCount == 0 && b.unreadCount > 0) return 1;
-          if (a.lastMessageTimestamp != null && b.lastMessageTimestamp != null) {
-            return b.lastMessageTimestamp!.compareTo(a.lastMessageTimestamp!);
-          }
-          if (a.lastMessageTimestamp != null) return -1;
-          if (b.lastMessageTimestamp != null) return 1;
-          return 0;
+          return a.name.compareTo(b.name);
         });
         break;
       case ChatSortOption.readFirst:
         _filteredChats.sort((a, b) {
           if (a.unreadCount == 0 && b.unreadCount > 0) return -1;
           if (a.unreadCount > 0 && b.unreadCount == 0) return 1;
-          if (a.lastMessageTimestamp != null && b.lastMessageTimestamp != null) {
-            return b.lastMessageTimestamp!.compareTo(a.lastMessageTimestamp!);
-          }
-          if (a.lastMessageTimestamp != null) return -1;
-          if (b.lastMessageTimestamp != null) return 1;
-          return 0;
+          return a.name.compareTo(b.name);
         });
         break;
       case ChatSortOption.orderByName:

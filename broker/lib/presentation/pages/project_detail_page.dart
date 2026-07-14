@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/di/injection_container.dart';
 import '../../data/models/broker_project_model.dart';
@@ -12,6 +13,25 @@ const Color _alignedGreen = Color(0xFF12B76A);
 const Color _alignedGreenBg = Color(0xFFE7F8F0);
 const Color _pausedAmber = Color(0xFFB54708);
 const Color _pausedAmberBg = Color(0xFFFFF4E5);
+const Color _pendingBlue = Color(0xFF1570EF);
+const Color _pendingBlueBg = Color(0xFFEFF4FF);
+
+/// Canonical public URL for a project, on the buyer website.
+String _projectShareUrl(String projectId) =>
+    'https://buyer.demo.paysft.com/projects/$projectId';
+
+/// Opens the OS native share sheet with the project's public link.
+Future<void> _shareProject(BuildContext context, BrokerProjectModel project) async {
+  final url = _projectShareUrl(project.id);
+  final where = project.location.isEmpty ? '' : ' — ${project.location}';
+  final box = context.findRenderObject() as RenderBox?;
+  await Share.share(
+    '${project.name}$where\n$url',
+    subject: project.name,
+    sharePositionOrigin:
+        box != null ? box.localToGlobal(Offset.zero) & box.size : null,
+  );
+}
 
 class ProjectDetailPage extends StatelessWidget {
   final BrokerProjectModel seed;
@@ -50,6 +70,14 @@ class _ProjectDetailView extends StatelessWidget {
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
+        actions: [
+          if (project != null)
+            IconButton(
+              tooltip: 'Share',
+              icon: const Icon(Icons.share_outlined, color: Color(0xFF1D2939)),
+              onPressed: () => _shareProject(context, project),
+            ),
+        ],
       ),
       bottomNavigationBar:
           project == null ? null : _ContactBar(project: project),
@@ -352,24 +380,34 @@ class _StatusPill extends StatelessWidget {
     final status =
         context.watch<ProjectsProvider>().assignmentStatusFor(project.id);
     if (status == null) return const SizedBox.shrink();
+    final pending = status == 'pending';
     final paused = status == 'paused';
+    final color = pending
+        ? _pendingBlue
+        : (paused ? _pausedAmber : _alignedGreen);
+    final bg = pending
+        ? _pendingBlueBg
+        : (paused ? _pausedAmberBg : _alignedGreenBg);
+    final icon = pending
+        ? Icons.hourglass_top
+        : (paused ? Icons.pause_circle_outline : Icons.check_circle);
+    final label = pending ? 'Pending approval' : (paused ? 'Paused' : 'Aligned');
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: paused ? _pausedAmberBg : _alignedGreenBg,
+        color: bg,
         borderRadius: BorderRadius.circular(999),
       ),
       child: Row(
         children: [
-          Icon(paused ? Icons.pause_circle_outline : Icons.check_circle,
-              size: 14, color: paused ? _pausedAmber : _alignedGreen),
+          Icon(icon, size: 14, color: color),
           const SizedBox(width: 5),
           Text(
-            paused ? 'Paused' : 'Aligned',
+            label,
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: paused ? _pausedAmber : _alignedGreen,
+              color: color,
             ),
           ),
         ],

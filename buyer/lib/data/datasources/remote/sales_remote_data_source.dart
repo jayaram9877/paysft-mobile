@@ -118,6 +118,7 @@ class SalesRemoteDataSourceImpl implements SalesRemoteDataSource {
         projectName: '${m['project_name'] ?? ''}',
         unitLabel: '${m['unit_label'] ?? m['unit_number'] ?? ''}',
         totalCost: CurrencyFormat.inr(m['total_cost']),
+        totalCostValue: _num(m['total_cost']),
       );
 
   BuyerOfferDetail _detailFromJson(Map m) => BuyerOfferDetail(
@@ -133,6 +134,7 @@ class SalesRemoteDataSourceImpl implements SalesRemoteDataSource {
         unitTitle: _str(m['unit_title']),
         builderName: '${m['builder_name'] ?? ''}',
         totalCost: CurrencyFormat.inr(m['total_cost']),
+        totalCostValue: _num(m['total_cost']),
         costBreakdown: _mapOf(m['cost_breakdown']),
         milestones: _listOfMaps(m['milestones']),
         escrow: m['escrow'] is Map
@@ -161,6 +163,8 @@ class SalesRemoteDataSourceImpl implements SalesRemoteDataSource {
       );
 
   String? _str(dynamic v) => v == null ? null : '$v';
+
+  double _num(dynamic v) => double.tryParse('$v') ?? 0;
 
   DateTime? _dt(dynamic v) {
     final s = _str(v);

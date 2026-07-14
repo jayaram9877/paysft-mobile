@@ -1,26 +1,13 @@
-/// App Flavor enum to represent different build environments
+/// Build environments. The only thing that varies between them is the API
+/// base URL (and whether verbose network logging is on).
 enum AppFlavor {
   dev,
-  staging,
   production;
-
-  String get name {
-    switch (this) {
-      case AppFlavor.dev:
-        return 'Dev';
-      case AppFlavor.staging:
-        return 'Staging';
-      case AppFlavor.production:
-        return 'Production';
-    }
-  }
 
   String get appName {
     switch (this) {
       case AppFlavor.dev:
         return 'Buyer Dev';
-      case AppFlavor.staging:
-        return 'Buyer Staging';
       case AppFlavor.production:
         return 'Buyer';
     }
@@ -30,17 +17,17 @@ enum AppFlavor {
     switch (this) {
       case AppFlavor.dev:
         return 'https://api.demo.paysft.com';
-      case AppFlavor.staging:
-        return 'https://api.demo.paysft.com';
       case AppFlavor.production:
-        return 'https://api.demo.paysft.com';
+        // TODO: point this at the real production API once it exists.
+        return 'https://api.paysft.com';
     }
   }
 
+  /// Verbose request/response logging — on for dev, off in production so JWTs
+  /// and PII are never written to device logs.
   bool get enableLogging {
     switch (this) {
       case AppFlavor.dev:
-      case AppFlavor.staging:
         return true;
       case AppFlavor.production:
         return false;
@@ -48,14 +35,19 @@ enum AppFlavor {
   }
 }
 
-/// App Configuration class that holds flavor-specific settings
+/// App Configuration class that holds flavor-specific settings.
 class AppConfig {
   final AppFlavor flavor;
   final String appName;
   final String baseUrl;
   final bool enableLogging;
 
-  AppConfig({required this.flavor, required this.appName, required this.baseUrl, required this.enableLogging});
+  AppConfig({
+    required this.flavor,
+    required this.appName,
+    required this.baseUrl,
+    required this.enableLogging,
+  });
 
   static AppConfig fromFlavor(AppFlavor flavor) {
     return AppConfig(

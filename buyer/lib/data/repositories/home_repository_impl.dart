@@ -77,6 +77,7 @@ class HomeRepositoryImpl implements HomeRepository {
     String? projectType,
     String? projectSubtype,
     String? cityId,
+    num? priceMax,
     int limit = 30,
   }) {
     return remoteDataSource.getProjects(
@@ -84,6 +85,7 @@ class HomeRepositoryImpl implements HomeRepository {
       projectType: projectType,
       projectSubtype: projectSubtype,
       cityId: cityId,
+      priceMax: priceMax,
       limit: limit,
     );
   }

@@ -18,6 +18,7 @@ import '../widgets/home/property_type_card_widget.dart';
 import '../widgets/home/quick_action_card_widget.dart';
 import '../widgets/common/app_svg_icon.dart';
 import 'notifications_page.dart';
+import 'copilot_page.dart';
 import '../widgets/common/app_loader_widget.dart';
 import 'location_selection_page.dart';
 import '../providers/location_provider.dart';
@@ -97,6 +98,15 @@ class _HomePageState extends State<HomePage> {
 
     return Scaffold(
       backgroundColor: AppColors.backgroundGray25,
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const CopilotPage()),
+        ),
+        backgroundColor: AppColors.bluePrimary,
+        icon: const Icon(Icons.auto_awesome, color: Colors.white),
+        label: const Text('Copilot',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+      ),
       body: ColoredBox(
         color: AppColors.backgroundGray25,
         child: SafeArea(

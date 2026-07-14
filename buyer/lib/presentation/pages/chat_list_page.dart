@@ -9,6 +9,7 @@ import '../../core/theme/theme_manager.dart';
 import '../providers/chat_provider.dart';
 import '../providers/chat_list_provider.dart';
 import '../widgets/meetings/meetings_view.dart';
+import '../../core/di/injection_container.dart' as di;
 
 class ChatListPage extends StatefulWidget {
   const ChatListPage({super.key});
@@ -20,86 +21,6 @@ class ChatListPage extends StatefulWidget {
 class _ChatListPageState extends State<ChatListPage> {
   final TextEditingController _searchController = TextEditingController();
   bool _isSearchMode = false;
-
-  // Dummy chat list data with unread counts and messages
-  static final List<ChatContact> _dummyChats = [
-    ChatContact(
-      id: '1',
-      name: 'John Doe',
-      profileImageUrl: 'https://i.pravatar.cc/150?img=1',
-      isOnline: true,
-      unreadCount: 3,
-      lastMessage: 'Hey, how are you?',
-      lastMessageTimestamp: DateTime.now().subtract(const Duration(minutes: 5)),
-    ),
-    ChatContact(
-      id: '2',
-      name: 'Jane Smith',
-      profileImageUrl: 'https://i.pravatar.cc/150?img=2',
-      isOnline: false,
-      lastSeen: '2 hours ago',
-      unreadCount: 0,
-      lastMessage: 'Thanks for the help!',
-      lastMessageTimestamp: DateTime.now().subtract(const Duration(hours: 2)),
-    ),
-    ChatContact(
-      id: '3',
-      name: 'Mike Johnson',
-      profileImageUrl: 'https://i.pravatar.cc/150?img=3',
-      isOnline: true,
-      unreadCount: 1,
-      lastMessage: 'Can we schedule a meeting?',
-      lastMessageTimestamp: DateTime.now().subtract(const Duration(minutes: 30)),
-    ),
-    ChatContact(
-      id: '4',
-      name: 'Sarah Williams',
-      profileImageUrl: null,
-      isOnline: false,
-      lastSeen: 'Yesterday',
-      unreadCount: 5,
-      lastMessage: 'I have some questions about the property',
-      lastMessageTimestamp: DateTime.now().subtract(const Duration(days: 1)),
-    ),
-    ChatContact(
-      id: '5',
-      name: 'David Brown',
-      profileImageUrl: 'https://i.pravatar.cc/150?img=5',
-      isOnline: true,
-      unreadCount: 0,
-      lastMessage: 'See you tomorrow!',
-      lastMessageTimestamp: DateTime.now().subtract(const Duration(hours: 12)),
-    ),
-    ChatContact(
-      id: '6',
-      name: 'Emily Davis',
-      profileImageUrl: 'https://i.pravatar.cc/150?img=6',
-      isOnline: false,
-      lastSeen: '5 minutes ago',
-      unreadCount: 2,
-      lastMessage: 'The property looks great!',
-      lastMessageTimestamp: DateTime.now().subtract(const Duration(minutes: 10)),
-    ),
-    ChatContact(
-      id: '7',
-      name: 'Robert Wilson',
-      profileImageUrl: null,
-      isOnline: false,
-      lastSeen: '1 week ago',
-      unreadCount: 0,
-      lastMessage: 'Let me know when you\'re available',
-      lastMessageTimestamp: DateTime.now().subtract(const Duration(days: 7)),
-    ),
-    ChatContact(
-      id: '8',
-      name: 'Lisa Anderson',
-      profileImageUrl: 'https://i.pravatar.cc/150?img=8',
-      isOnline: true,
-      unreadCount: 0,
-      lastMessage: 'Perfect, thank you!',
-      lastMessageTimestamp: DateTime.now().subtract(const Duration(hours: 1)),
-    ),
-  ];
 
   @override
   void dispose() {
@@ -127,7 +48,7 @@ class _ChatListPageState extends State<ChatListPage> {
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
-      create: (_) => ChatListProvider(initialChats: _dummyChats),
+      create: (_) => di.sl<ChatListProvider>()..load(),
       child: DefaultTabController(
         length: 2,
         child: Consumer<ChatListProvider>(
@@ -149,6 +70,10 @@ class _ChatListPageState extends State<ChatListPage> {
   Widget _buildChatsBody() {
     return Consumer<ChatListProvider>(
       builder: (context, provider, child) {
+        if (provider.isLoading && provider.allChats.isEmpty) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
         // Check if we have any chats at all (before filtering)
         final hasAnyChats = provider.allChats.isNotEmpty;
 
@@ -289,7 +214,7 @@ class _ChatListPageState extends State<ChatListPage> {
         Navigator.of(context).push(
           MaterialPageRoute(
             builder: (context) => ChangeNotifierProvider(
-              create: (_) => ChatProvider(contact: contact),
+              create: (_) => ChatProvider(dataSource: di.sl(), contact: contact),
               child: ChatPage(contact: contact),
             ),
           ),

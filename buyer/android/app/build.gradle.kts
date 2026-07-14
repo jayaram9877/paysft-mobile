@@ -38,12 +38,6 @@ android {
             versionNameSuffix = "-dev"
             resValue("string", "app_name", "Buyer Dev")
         }
-        create("staging") {
-            dimension = "environment"
-            applicationIdSuffix = ".staging"
-            versionNameSuffix = "-staging"
-            resValue("string", "app_name", "Buyer Staging")
-        }
         create("prod") {
             dimension = "environment"
             resValue("string", "app_name", "Buyer")

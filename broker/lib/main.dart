@@ -9,6 +9,7 @@ import 'package:broker/presentation/providers/projects_provider.dart';
 import 'package:broker/presentation/providers/profile_provider.dart';
 import 'package:broker/presentation/providers/main_tab_controller.dart';
 import 'package:broker/presentation/providers/schedule_provider.dart';
+import 'package:broker/presentation/providers/copilot_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -35,6 +36,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => di.sl<ProfileProvider>()),
         ChangeNotifierProvider(create: (_) => MainTabController()),
         ChangeNotifierProvider(create: (_) => di.sl<ScheduleProvider>()),
+        ChangeNotifierProvider(create: (_) => CopilotProvider()),
       ],
       child: MaterialApp(
         title: 'Paysft Broker',

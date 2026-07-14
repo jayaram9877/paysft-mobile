@@ -43,6 +43,17 @@ class ApiConstants {
   /// POST /buyer/leads/{id}/cancel withdraws it.
   static const String buyerLeads = '/buyer/leads';
 
+  /// Buyer↔broker chat, scoped to a lead.
+  ///   GET  /buyer/leads/{id}/messages       -> {lead_id, counterpart_name, messages[]}
+  ///   POST /buyer/leads/{id}/messages {body}-> the sent message
+  ///   POST /buyer/leads/{id}/messages/read  -> mark thread read
+  ///   GET  /buyer/messages/unread-count      -> {total, per_lead}
+  static String buyerLeadMessages(String leadId) =>
+      '/buyer/leads/$leadId/messages';
+  static String buyerLeadMessagesRead(String leadId) =>
+      '/buyer/leads/$leadId/messages/read';
+  static const String buyerMessagesUnread = '/buyer/messages/unread-count';
+
   /// Buyer site visits / meetings (scheduled by the builder/broker). GET lists
   /// them enriched with the project + unit they're for.
   static const String buyerVisits = '/buyer/visits';
@@ -78,7 +89,6 @@ class ApiConstants {
   static const String activityValidateOtp = 'ValidateOtp';
   static const String activityVerifyAppVersion = 'VerifyAppVersion';
   static const String activityGetOnboardingContent = 'GetOnboardingContent';
-  static const String activityUpdateFirebaseToken = 'UpdateFirebaseToken';
 
   // Headers
   static const String moduleUserAuth = 'UserAuthentication';
