@@ -69,6 +69,17 @@ class ChatContact {
     this.lastMessage,
     this.lastMessageTimestamp,
   });
+
+  ChatContact copyWith({int? unreadCount, String? lastMessage}) => ChatContact(
+        id: id,
+        name: name,
+        profileImageUrl: profileImageUrl,
+        isOnline: isOnline,
+        lastSeen: lastSeen,
+        unreadCount: unreadCount ?? this.unreadCount,
+        lastMessage: lastMessage ?? this.lastMessage,
+        lastMessageTimestamp: lastMessageTimestamp,
+      );
 }
 
 class SharedContact {

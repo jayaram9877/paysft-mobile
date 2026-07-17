@@ -16,9 +16,10 @@ const Color _pausedAmberBg = Color(0xFFFFF4E5);
 const Color _pendingBlue = Color(0xFF1570EF);
 const Color _pendingBlueBg = Color(0xFFEFF4FF);
 
-/// Canonical public URL for a project, on the buyer website.
+/// Canonical public URL for a project — the shared link domain (opens the buyer
+/// app when installed, web otherwise).
 String _projectShareUrl(String projectId) =>
-    'https://buyer.demo.paysft.com/projects/$projectId';
+    'https://links.paysft.com/projects/$projectId';
 
 /// Opens the OS native share sheet with the project's public link.
 Future<void> _shareProject(BuildContext context, BrokerProjectModel project) async {

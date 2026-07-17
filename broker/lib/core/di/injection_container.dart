@@ -7,6 +7,8 @@ import '../../data/datasources/remote/broker_dashboard_remote_data_source.dart';
 import '../../data/datasources/remote/broker_projects_remote_data_source.dart';
 import '../../data/datasources/remote/broker_assignments_remote_data_source.dart';
 import '../../data/datasources/remote/broker_visits_remote_data_source.dart';
+import '../../data/datasources/remote/chat_remote_data_source.dart';
+import '../../presentation/providers/chat_list_provider.dart';
 import '../../data/repositories/auth_repository_impl.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../../domain/usecases/send_otp.dart';
@@ -44,6 +46,9 @@ Future<void> init() async {
     ),
   );
   sl.registerFactory(() => ProjectDetailProvider(remoteDataSource: sl()));
+  sl.registerLazySingleton(
+    () => ChatListProvider(assignmentsDataSource: sl(), chatDataSource: sl()),
+  );
   sl.registerFactory(() => BrokerDocumentsProvider(remoteDataSource: sl()));
   sl.registerFactory(
     () => ScheduleProvider(visitsDataSource: sl(), projectsDataSource: sl()),
@@ -84,6 +89,9 @@ Future<void> init() async {
   );
   sl.registerLazySingleton<BrokerAssignmentsRemoteDataSource>(
     () => BrokerAssignmentsRemoteDataSourceImpl(sl()),
+  );
+  sl.registerLazySingleton<ChatRemoteDataSource>(
+    () => ChatRemoteDataSourceImpl(sl()),
   );
   sl.registerLazySingleton<BrokerVisitsRemoteDataSource>(
     () => BrokerVisitsRemoteDataSourceImpl(sl()),

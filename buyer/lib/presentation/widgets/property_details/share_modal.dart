@@ -8,10 +8,10 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../domain/entities/property_details_model.dart';
 import '../../widgets/common/app_svg_icon.dart';
 
-/// Canonical public URL for a property, on the buyer website. Recipients open
-/// this in a browser (or the app, once App Links / Universal Links are set up).
+/// Canonical public URL for a property. This is the App Links / Universal Links
+/// domain: it opens the app when installed, and falls back to the web otherwise.
 String _propertyShareUrl(String projectId) =>
-    'https://buyer.demo.paysft.com/projects/$projectId';
+    'https://links.paysft.com/projects/$projectId';
 
 /// Share modal widget for sharing property details
 /// Follows the existing architecture pattern with theme-aware design

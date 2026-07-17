@@ -2,14 +2,14 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<!-- iOS Universal Links: open https://buyer.demo.paysft.com/* in the app.
+	<!-- iOS Universal Links: open https://links.paysft.com/* in the app.
 	     Verified via /.well-known/apple-app-site-association hosted on that domain.
 	     NOTE: You must also enable "Associated Domains" in Xcode →
 	     Runner target → Signing & Capabilities (this sets CODE_SIGN_ENTITLEMENTS
 	     to Runner/Runner.entitlements). -->
 	<key>com.apple.developer.associated-domains</key>
 	<array>
-		<string>applinks:buyer.demo.paysft.com</string>
+		<string>applinks:links.paysft.com</string>
 	</array>
 </dict>
 </plist>

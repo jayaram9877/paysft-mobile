@@ -41,6 +41,18 @@ class ApiConstants {
   static String brokerLeadVisits(String leadId) =>
       '/brokers/me/leads/$leadId/visits';
 
+  /// Broker↔buyer chat, scoped to a lead.
+  ///   GET  /brokers/me/leads/{id}/messages       -> {lead_id, counterpart_name, messages[]}
+  ///   POST /brokers/me/leads/{id}/messages {body}-> the sent message
+  ///   POST /brokers/me/leads/{id}/messages/read  -> mark thread read
+  ///   GET  /brokers/me/messages/unread-count      -> {total, per_lead}
+  static String brokerLeadMessages(String leadId) =>
+      '/brokers/me/leads/$leadId/messages';
+  static String brokerLeadMessagesRead(String leadId) =>
+      '/brokers/me/leads/$leadId/messages/read';
+  static const String brokersMeMessagesUnread =
+      '/brokers/me/messages/unread-count';
+
   // Broker site visits (schedule)
   static const String brokersMeVisits = '/brokers/me/visits';
   static String brokerVisit(String visitId) => '/brokers/me/visits/$visitId';

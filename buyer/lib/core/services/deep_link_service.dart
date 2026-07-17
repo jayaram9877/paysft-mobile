@@ -6,8 +6,8 @@ import 'package:flutter/material.dart';
 import '../../domain/entities/property_model.dart';
 import '../../presentation/pages/property_details_page.dart';
 
-/// Handles incoming deep links (Android App Links / iOS Universal Links) for
-/// the buyer website, e.g. `https://buyer.demo.paysft.com/projects/{id}`.
+/// Handles incoming deep links (Android App Links / iOS Universal Links), e.g.
+/// `https://links.paysft.com/projects/{id}`.
 ///
 /// A matched link opens the corresponding property inside the app. The details
 /// page fetches everything from the project id, so a minimal seed is enough.
@@ -15,7 +15,8 @@ class DeepLinkService {
   DeepLinkService._();
   static final DeepLinkService instance = DeepLinkService._();
 
-  static const String _host = 'buyer.demo.paysft.com';
+  /// The link domain — this is where /.well-known/assetlinks.json is hosted.
+  static const String _host = 'links.paysft.com';
 
   final AppLinks _appLinks = AppLinks();
   GlobalKey<NavigatorState>? _navKey;

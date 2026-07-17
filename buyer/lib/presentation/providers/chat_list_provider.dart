@@ -67,6 +67,16 @@ class ChatListProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  /// Clears a conversation's unread badge as soon as it's opened (the thread
+  /// marks it read server-side; this keeps the list in sync immediately).
+  void markConversationRead(String leadId) {
+    final i = _allChats.indexWhere((c) => c.id == leadId);
+    if (i < 0 || _allChats[i].unreadCount == 0) return;
+    _allChats[i] = _allChats[i].copyWith(unreadCount: 0);
+    _applyFilters();
+    notifyListeners();
+  }
+
   void performSearch(String query) {
     _searchQuery = query.toLowerCase().trim();
     _applyFilters();

@@ -40,14 +40,14 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
 
-            <!-- App Links: open https://buyer.demo.paysft.com/projects/* in the app.
+            <!-- App Links: open https://links.paysft.com/projects/* in the app.
                  Verified via /.well-known/assetlinks.json hosted on that domain. -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW"/>
                 <category android:name="android.intent.category.DEFAULT"/>
                 <category android:name="android.intent.category.BROWSABLE"/>
                 <data android:scheme="https"
-                    android:host="buyer.demo.paysft.com"
+                    android:host="links.paysft.com"
                     android:pathPrefix="/projects"/>
             </intent-filter>
         </activity>

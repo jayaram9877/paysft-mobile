@@ -9,6 +9,9 @@ class BrokerDocumentModel {
   final int? fileSizeBytes;
   final DateTime? uploadedAt;
 
+  /// Document validity window from the API (e.g. a RERA certificate's expiry).
+  final DateTime? validUntil;
+
   BrokerDocumentModel({
     required this.id,
     required this.documentType,
@@ -17,6 +20,7 @@ class BrokerDocumentModel {
     this.mimeType,
     this.fileSizeBytes,
     this.uploadedAt,
+    this.validUntil,
   });
 
   static String? _s(dynamic v) => v?.toString();
@@ -31,6 +35,7 @@ class BrokerDocumentModel {
       fileSizeBytes:
           json['file_size_bytes'] is int ? json['file_size_bytes'] as int : null,
       uploadedAt: DateTime.tryParse(_s(json['uploaded_at']) ?? ''),
+      validUntil: DateTime.tryParse(_s(json['valid_until']) ?? ''),
     );
   }
 

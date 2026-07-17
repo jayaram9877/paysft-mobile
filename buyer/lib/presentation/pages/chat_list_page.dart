@@ -211,6 +211,8 @@ class _ChatListPageState extends State<ChatListPage> {
   Widget _buildChatItem(BuildContext context, ChatContact contact) {
     return InkWell(
       onTap: () {
+        // Opening the thread reads it — drop the badge right away.
+        context.read<ChatListProvider>().markConversationRead(contact.id);
         Navigator.of(context).push(
           MaterialPageRoute(
             builder: (context) => ChangeNotifierProvider(

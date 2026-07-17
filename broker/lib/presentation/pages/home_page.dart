@@ -3,8 +3,10 @@ import 'package:provider/provider.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_string_constants.dart';
 import '../../core/theme/theme_manager.dart';
+import '../../core/di/injection_container.dart';
 import '../providers/home_dashboard_provider.dart';
 import '../providers/profile_provider.dart';
+import '../providers/broker_documents_provider.dart';
 import '../providers/main_tab_controller.dart';
 import 'my_documents_page.dart';
 import 'copilot_page.dart';
@@ -27,6 +29,10 @@ class _HomePageState extends State<HomePage> {
   static const int _complianceScore = 92;
   // -------------------------------------------------------------------------
 
+  /// Own instance (the provider is a DI factory and MyDocumentsPage makes its
+  /// own) — drives the real Documents/KYC verification row.
+  final BrokerDocumentsProvider _docs = sl<BrokerDocumentsProvider>();
+
   @override
   void initState() {
     super.initState();
@@ -34,7 +40,14 @@ class _HomePageState extends State<HomePage> {
       context.read<HomeDashboardProvider>().load();
       final pp = context.read<ProfileProvider>();
       if (!pp.loadedOnce) pp.load();
+      _docs.load();
     });
+  }
+
+  @override
+  void dispose() {
+    _docs.dispose();
+    super.dispose();
   }
 
   void _comingSoon([String label = 'This']) {
@@ -108,6 +121,9 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       backgroundColor: const Color(0xFFF4F6FB),
       floatingActionButton: FloatingActionButton.extended(
+        // Unique tag: tabs live in an IndexedStack, so every FAB is built at
+        // once and the default Hero tag would collide with Schedule's FAB.
+        heroTag: 'copilotFab',
         onPressed: () => Navigator.of(context).push(
           MaterialPageRoute(builder: (_) => const CopilotPage()),
         ),
@@ -137,7 +153,10 @@ class _HomePageState extends State<HomePage> {
             const SizedBox(height: 16),
             _statGrid(v(c?.leads), v(c?.projects), v(c?.clients)),
             const SizedBox(height: 16),
-            _verificationStatusCard(broker),
+            ListenableBuilder(
+              listenable: _docs,
+              builder: (_, __) => _verificationStatusCard(broker, _docs),
+            ),
             const SizedBox(height: 16),
             _quickActions(),
             const SizedBox(height: 16),
@@ -328,9 +347,11 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _verificationStatusCard(BrokerModel? broker) {
-    final active = broker?.isActive ?? false;
+  Widget _verificationStatusCard(
+      BrokerModel? broker, BrokerDocumentsProvider docs) {
     final hasRera = (broker?.reraAgentNumber ?? '').isNotEmpty;
+    final hasBank = broker?.hasBankDetails ?? false;
+    final kyc = _kycStatus(docs);
     return _whiteCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -341,16 +362,26 @@ class _HomePageState extends State<HomePage> {
                   fontWeight: FontWeight.w700,
                   color: AppColors.textDark)),
           const SizedBox(height: 12),
-          _verifyRow('Aadhaar eKYC', active, active ? 'Verified' : 'Pending'),
+          _verifyRow('Documents (KYC)', kyc.ok, kyc.label),
           const Divider(height: 20, color: AppColors.borderGrayLight),
-          _verifyRow('RERA Registration', active && hasRera,
-              (active && hasRera) ? 'Active' : 'Pending'),
+          _verifyRow('RERA Registration', hasRera, hasRera ? 'Added' : 'Pending'),
           const Divider(height: 20, color: AppColors.borderGrayLight),
-          _verifyRow('Bank Account', broker?.hasBankDetails ?? false,
-              (broker?.hasBankDetails ?? false) ? 'Added' : 'Pending'),
+          _verifyRow('Bank Account', hasBank, hasBank ? 'Added' : 'Pending'),
         ],
       ),
     );
+  }
+
+  /// Real KYC state from GET /brokers/me/documents (`current_status` is
+  /// pending_review | approved | rejected).
+  ({bool ok, String label}) _kycStatus(BrokerDocumentsProvider docs) {
+    final all = docs.documents;
+    if (docs.isLoading && all.isEmpty) return (ok: false, label: 'Checking…');
+    if (all.isEmpty) return (ok: false, label: 'Not uploaded');
+    if (all.any((d) => d.isRejected)) return (ok: false, label: 'Action needed');
+    final approved = all.where((d) => d.isApproved).length;
+    if (approved == all.length) return (ok: true, label: 'Verified');
+    return (ok: false, label: '$approved/${all.length} approved');
   }
 
   Widget _verifyRow(String title, bool ok, String badge) {

@@ -108,6 +108,7 @@ class _SchedulePageState extends State<SchedulePage> {
         ],
       ),
       floatingActionButton: FloatingActionButton(
+        heroTag: 'scheduleFab',
         backgroundColor: _purple,
         onPressed: _newSchedule,
         child: const Icon(Icons.add, color: Colors.white),

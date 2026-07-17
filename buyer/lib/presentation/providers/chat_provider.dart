@@ -11,11 +11,16 @@ class ChatProvider with ChangeNotifier {
   final ChatRemoteDataSource dataSource;
   final ChatContact contact;
 
+  /// How often the open thread re-pings the messages endpoint for new replies
+  /// (the backend has no push/websocket, so the thread polls while visible).
+  static const Duration _pollInterval = Duration(seconds: 5);
+
   final List<Message> _messages = [];
   bool _isTyping = false;
   bool _isLoading = false;
   bool _sending = false;
   String? _counterpartName;
+  Timer? _poll;
 
   ChatProvider({required this.dataSource, required this.contact});
 
@@ -51,6 +56,42 @@ class ChatProvider with ChangeNotifier {
     }
     // Fire-and-forget read receipt.
     dataSource.markRead(leadId);
+    _startPolling();
+  }
+
+  /// Polls the thread while it's open so replies from the broker show up
+  /// without the user leaving/re-entering.
+  void _startPolling() {
+    _poll?.cancel();
+    _poll = Timer.periodic(_pollInterval, (_) => _refresh());
+  }
+
+  /// Appends only messages we haven't seen (matched by server id), so local
+  /// optimistic echoes are never duplicated or lost.
+  Future<void> _refresh() async {
+    if (_sending || _isLoading) return;
+    try {
+      final thread = await dataSource.getThread(leadId);
+      _counterpartName = thread.counterpartName;
+      final known = _messages.map((m) => m.id).toSet();
+      final fresh = thread.messages.where((m) => !known.contains(m.id));
+      if (fresh.isEmpty) return;
+      for (final m in fresh) {
+        _messages.add(_message(m.id, m.body, m.createdAt, m.fromBuyer));
+      }
+      notifyListeners();
+      // We're looking at the thread, so the new arrivals are already read.
+      dataSource.markRead(leadId);
+    } catch (_) {
+      // Transient; the next tick retries.
+    }
+  }
+
+  @override
+  void dispose() {
+    _poll?.cancel();
+    _poll = null;
+    super.dispose();
   }
 
   /// Sends a text message: echo it optimistically, then persist via the API and

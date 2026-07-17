@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../core/constants/app_colors.dart';
+import '../../core/di/injection_container.dart';
 import '../providers/profile_provider.dart';
+import '../providers/broker_documents_provider.dart';
 import '../../data/models/broker_model.dart';
+import '../../data/models/broker_document_model.dart';
 import '../../data/models/user_model.dart';
 import '../welcome_screen/onboarding_page.dart';
 
@@ -15,15 +18,9 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
-  // ---- Static/demo values (no API source) --------------------------------
-  static const double _rating = 4.8;
-  static const int _reviews = 156;
-  static const String _selfieScore = '98%';
-  static const String _reraValidUntil = '31 Dec 2025';
-  static const String _experience = '8 years';
-  static const List<String> _languages = ['Hindi', 'English', 'Marathi'];
-  static const List<String> _microMarkets = ['Powai', 'Bandra', 'Andheri West'];
-  // -------------------------------------------------------------------------
+  /// Own instance (the provider is a DI factory) — drives the real KYC /
+  /// selfie / RERA-validity rows from GET /brokers/me/documents.
+  final BrokerDocumentsProvider _docs = sl<BrokerDocumentsProvider>();
 
   @override
   void initState() {
@@ -31,7 +28,14 @@ class _ProfilePageState extends State<ProfilePage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final p = context.read<ProfileProvider>();
       if (!p.loadedOnce) p.load();
+      _docs.load();
     });
+  }
+
+  @override
+  void dispose() {
+    _docs.dispose();
+    super.dispose();
   }
 
   Future<void> _logout() async {
@@ -149,7 +153,10 @@ class _ProfilePageState extends State<ProfilePage> {
         children: [
           _headerCard(user, broker),
           const SizedBox(height: 16),
-          _verificationSection(broker),
+          ListenableBuilder(
+            listenable: _docs,
+            builder: (_, __) => _verificationSection(broker, _docs),
+          ),
           const SizedBox(height: 16),
           _contactSection(user),
           const SizedBox(height: 16),
@@ -200,22 +207,6 @@ class _ProfilePageState extends State<ProfilePage> {
           const SizedBox(height: 2),
           Text(broker?.legalName ?? '—',
               style: const TextStyle(color: Colors.white70, fontSize: 14)),
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.star, color: Color(0xFFFBBF24), size: 18),
-              const SizedBox(width: 4),
-              Text('$_rating',
-                  style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 14)),
-              const SizedBox(width: 6),
-              Text('($_reviews reviews)',
-                  style: const TextStyle(color: Colors.white70, fontSize: 13)),
-            ],
-          ),
           const SizedBox(height: 14),
           GestureDetector(
             onTap: () => ScaffoldMessenger.of(context).showSnackBar(
@@ -249,30 +240,92 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   // ---- Verification & Compliance -----------------------------------------
-  Widget _verificationSection(BrokerModel? broker) {
-    final active = broker?.isActive ?? false;
+  /// All rows are driven by GET /brokers/me/documents (`current_status` is
+  /// pending_review | approved | rejected).
+  Widget _verificationSection(BrokerModel? broker, BrokerDocumentsProvider docs) {
+    final kyc = _kycStatus(docs);
+    final selfie = _docStatus(docs, 'photo_id');
     return _card(
       title: 'Verification & Compliance',
       titleIcon: Icons.verified_user_outlined,
       child: Column(
         children: [
           _verifyRow(
-            title: 'Aadhaar eKYC',
-            subtitle: active ? 'Verified & Active' : 'Pending review',
-            badge: active ? 'Verified' : 'Pending',
-            ok: active,
+            title: 'Documents (KYC)',
+            subtitle: kyc.subtitle,
+            badge: kyc.label,
+            ok: kyc.ok,
           ),
           const SizedBox(height: 10),
           _verifyRow(
-            title: 'Live Selfie Match',
-            subtitle: 'Score: $_selfieScore',
-            badge: 'Matched',
-            ok: true,
+            title: 'Photo ID / Selfie',
+            subtitle: selfie.subtitle,
+            badge: selfie.label,
+            ok: selfie.ok,
           ),
           const SizedBox(height: 10),
-          _reraRow(broker),
+          _reraRow(broker, docs),
         ],
       ),
+    );
+  }
+
+  /// Overall KYC state across all uploaded documents.
+  ({bool ok, String label, String subtitle}) _kycStatus(
+      BrokerDocumentsProvider docs) {
+    final all = docs.documents;
+    if (docs.isLoading && all.isEmpty) {
+      return (ok: false, label: 'Checking', subtitle: 'Loading documents…');
+    }
+    if (all.isEmpty) {
+      return (
+        ok: false,
+        label: 'Pending',
+        subtitle: 'No documents uploaded yet',
+      );
+    }
+    if (all.any((d) => d.isRejected)) {
+      return (
+        ok: false,
+        label: 'Action needed',
+        subtitle: 'A document was rejected — please re-upload',
+      );
+    }
+    final approved = all.where((d) => d.isApproved).length;
+    if (approved == all.length) {
+      return (
+        ok: true,
+        label: 'Verified',
+        subtitle: '$approved of ${all.length} approved',
+      );
+    }
+    return (
+      ok: false,
+      label: 'Pending',
+      subtitle: '$approved of ${all.length} approved',
+    );
+  }
+
+  /// State of one document type (e.g. `photo_id`).
+  ({bool ok, String label, String subtitle}) _docStatus(
+      BrokerDocumentsProvider docs, String type) {
+    if (docs.isLoading && docs.documents.isEmpty) {
+      return (ok: false, label: 'Checking', subtitle: 'Loading…');
+    }
+    BrokerDocumentModel? doc;
+    for (final d in docs.documents) {
+      if (d.documentType == type) {
+        doc = d;
+        break;
+      }
+    }
+    if (doc == null) {
+      return (ok: false, label: 'Pending', subtitle: 'Not uploaded');
+    }
+    return (
+      ok: doc.isApproved,
+      label: doc.isApproved ? 'Verified' : (doc.isRejected ? 'Rejected' : 'Pending'),
+      subtitle: doc.statusLabel,
     );
   }
 
@@ -292,7 +345,7 @@ class _ProfilePageState extends State<ProfilePage> {
       ),
       child: Row(
         children: [
-          Icon(Icons.check_circle,
+          Icon(ok ? Icons.check_circle : Icons.schedule,
               color: ok ? const Color(0xFF16A34A) : const Color(0xFFD97706),
               size: 22),
           const SizedBox(width: 12),
@@ -318,7 +371,19 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget _reraRow(BrokerModel? broker) {
+  Widget _reraRow(BrokerModel? broker, BrokerDocumentsProvider docs) {
+    final number = broker?.reraAgentNumber ?? '';
+    final hasRera = number.isNotEmpty;
+
+    // Validity comes from the RERA certificate document, when one is uploaded.
+    DateTime? validUntil;
+    for (final d in docs.documents) {
+      if (d.documentType == 'rera_agent_certificate') {
+        validUntil = d.validUntil;
+        break;
+      }
+    }
+
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -329,7 +394,11 @@ class _ProfilePageState extends State<ProfilePage> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.check_circle, color: Color(0xFF16A34A), size: 22),
+          Icon(
+            hasRera ? Icons.check_circle : Icons.schedule,
+            color: hasRera ? const Color(0xFF16A34A) : const Color(0xFFD97706),
+            size: 22,
+          ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -341,15 +410,26 @@ class _ProfilePageState extends State<ProfilePage> {
                         fontWeight: FontWeight.w600,
                         color: AppColors.textDark)),
                 const SizedBox(height: 8),
-                _kv('Number', broker?.reraAgentNumber ?? '—'),
+                _kv('Number', hasRera ? number : '—'),
                 _kv('State', broker?.reraAgentState ?? '—'),
-                _kv('Valid Until', _reraValidUntil),
+                // Only shown when the certificate actually carries an expiry.
+                if (validUntil != null) _kv('Valid Until', _date(validUntil)),
               ],
             ),
           ),
         ],
       ),
     );
+  }
+
+  static const _months = [
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+  ];
+
+  String _date(DateTime d) {
+    final l = d.toLocal();
+    return '${l.day} ${_months[l.month - 1]} ${l.year}';
   }
 
   Widget _kv(String k, String v) => Padding(
@@ -417,14 +497,14 @@ class _ProfilePageState extends State<ProfilePage> {
             ],
           ),
         ),
-        const Icon(Icons.check_circle, color: Color(0xFF16A34A), size: 20),
       ],
     );
   }
 
   // ---- Professional Details ----------------------------------------------
   Widget _professionalSection(BrokerModel? broker) {
-    // Areas of operation from the registered address (real data).
+    // Areas of operation from the registered address (real data). Experience /
+    // languages / micro-markets have no API source, so they aren't shown.
     final areas = (broker?.registeredAddress ?? '')
         .split(',')
         .map((s) => s.trim())
@@ -435,20 +515,16 @@ class _ProfilePageState extends State<ProfilePage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _detailRow(Icons.work_outline, 'Experience', _experience),
-          const SizedBox(height: 16),
-          _chipsBlock(Icons.translate, 'Languages', _languages,
-              const Color(0xFFEFF6FF), AppColors.bluePrimary),
-          const SizedBox(height: 16),
+          if (broker?.pan != null && broker!.pan!.isNotEmpty) ...[
+            _detailRow(Icons.badge_outlined, 'PAN', broker.pan!),
+            const SizedBox(height: 16),
+          ],
           _chipsBlock(
               Icons.place_outlined,
               'Areas of Operation',
               areas.isEmpty ? ['—'] : areas,
               const Color(0xFFF0FDF4),
               const Color(0xFF16A34A)),
-          const SizedBox(height: 16),
-          _chipsBlock(Icons.location_city_outlined, 'Micro Markets',
-              _microMarkets, const Color(0xFFFAF5FF), const Color(0xFF9333EA)),
         ],
       ),
     );
@@ -553,7 +629,7 @@ class _ProfilePageState extends State<ProfilePage> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.check, size: 14, color: fg),
+          Icon(ok ? Icons.check : Icons.schedule, size: 14, color: fg),
           const SizedBox(width: 4),
           Text(text,
               style: TextStyle(
